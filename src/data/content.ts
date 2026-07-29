@@ -110,16 +110,41 @@ export function formatINR(amount: number) {
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
-export const ALL_TIME_SLOTS = {
-  Morning: ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM'],
-  Midday: ['12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM'],
-  Evening: ['04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM'],
-} as const
+export type DayPart = 'Morning' | 'Afternoon' | 'Evening'
 
-export type DayPart = keyof typeof ALL_TIME_SLOTS
+export type TimeSlot = {
+  time: string
+  booked: boolean
+}
 
-/** @deprecated use ALL_TIME_SLOTS / getSlotsForDate */
-export const timeSlots = ALL_TIME_SLOTS
+/** Build half-hour labels from 10:00 AM through 10:00 PM */
+export function buildDaySlots(): string[] {
+  const slots: string[] = []
+  for (let minutes = 10 * 60; minutes <= 22 * 60; minutes += 30) {
+    const hour24 = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    const period = hour24 >= 12 ? 'PM' : 'AM'
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12
+    slots.push(`${String(hour12).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${period}`)
+  }
+  return slots
+}
+
+export const FULL_DAY_SLOTS = buildDaySlots()
+
+export function dayPartForTime(time: string): DayPart {
+  const [clock, period] = time.split(' ')
+  const [h, m] = clock.split(':').map(Number)
+  let hour24 = h % 12
+  if (period === 'PM') hour24 += 12
+  if (period === 'AM' && h === 12) hour24 = 0
+  const total = hour24 * 60 + m
+  if (total < 13 * 60) return 'Morning' // 10:00–12:30
+  if (total < 18 * 60) return 'Afternoon' // 1:00–5:30
+  return 'Evening' // 6:00–10:00
+}
+
+export const DAY_PART_ORDER: DayPart[] = ['Morning', 'Afternoon', 'Evening']
 
 function hashString(input: string) {
   let hash = 2166136261
@@ -130,35 +155,35 @@ function hashString(input: string) {
   return hash >>> 0
 }
 
-/** Deterministic available slots for a given date — changes when the date changes */
-export function getSlotsForDate(dateKey: string): Record<DayPart, string[]> {
+/** Every day has the full 10AM–10PM grid; some slots are marked booked */
+export function getSlotsForDate(dateKey: string, extraBooked: Set<string> = new Set()): TimeSlot[] {
   const seed = hashString(dateKey)
-  const parts = Object.keys(ALL_TIME_SLOTS) as DayPart[]
-  const result = {} as Record<DayPart, string[]>
-
-  parts.forEach((part, partIndex) => {
-    const pool = ALL_TIME_SLOTS[part]
-    const available = pool.filter((_, index) => {
-      const bit = (seed + partIndex * 17 + index * 13) % 5
-      // Keep ~60–80% of slots; pattern shifts by date
-      return bit !== 0 && bit !== 3
-    })
-    result[part] =
-      available.length > 0
-        ? available
-        : [pool[(seed + partIndex) % pool.length]]
+  return FULL_DAY_SLOTS.map((time, index) => {
+    const bit = (seed + index * 17) % 7
+    // ~28% pre-booked demo slots, plus any locally confirmed bookings
+    const booked = bit === 0 || bit === 4 || extraBooked.has(`${dateKey}|${time}`)
+    return { time, booked }
   })
-
-  return result
 }
 
-export function countSlotsForDate(dateKey: string) {
-  const slots = getSlotsForDate(dateKey)
-  return (Object.keys(slots) as DayPart[]).reduce((sum, part) => sum + slots[part].length, 0)
+export function groupSlotsByPart(slots: TimeSlot[]): Record<DayPart, TimeSlot[]> {
+  const grouped: Record<DayPart, TimeSlot[]> = {
+    Morning: [],
+    Afternoon: [],
+    Evening: [],
+  }
+  for (const slot of slots) {
+    grouped[dayPartForTime(slot.time)].push(slot)
+  }
+  return grouped
+}
+
+export function countOpenSlots(dateKey: string, extraBooked: Set<string> = new Set()) {
+  return getSlotsForDate(dateKey, extraBooked).filter((s) => !s.booked).length
 }
 
 /** Next N bookable dates starting today */
-export function getBookableDates(count = 14) {
+export function getBookableDates(count = 14, extraBooked: Set<string> = new Set()) {
   const dates: { key: string; day: string; dateLabel: string; slots: number }[] = []
   const now = new Date()
   for (let i = 0; i < count; i++) {
@@ -172,7 +197,7 @@ export function getBookableDates(count = 14) {
       key,
       day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
       dateLabel: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-      slots: countSlotsForDate(key),
+      slots: countOpenSlots(key, extraBooked),
     })
   }
   return dates

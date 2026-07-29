@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { formatINR, profile, type Service } from '../data/content'
+import { saveBooking } from '../lib/bookings'
 
 type Selection = {
   dateKey: string
@@ -57,6 +58,11 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
           time: selection.time,
           amount: String(service.price),
         }),
+      })
+      saveBooking({
+        dateKey: selection.dateKey,
+        time: selection.time,
+        serviceId: service.id,
       })
       setStatus('done')
     } catch {

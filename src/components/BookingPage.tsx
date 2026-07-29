@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  DAY_PART_ORDER,
   formatINR,
   getBookableDates,
   getSlotsForDate,
+  groupSlotsByPart,
   profile,
   type DayPart,
   type Service,
+  type TimeSlot,
 } from '../data/content'
+import { getBookedKeys } from '../lib/bookings'
 
 type Props = {
   service: Service
@@ -14,49 +18,71 @@ type Props = {
   onConfirm: (selection: { dateKey: string; dateLabel: string; time: string }) => void
 }
 
-const DAY_PARTS: DayPart[] = ['Morning', 'Midday', 'Evening']
+function firstOpen(slots: TimeSlot[]) {
+  return slots.find((s) => !s.booked)?.time ?? ''
+}
 
-function pickBestDayPart(slots: Record<DayPart, string[]>, preferred: DayPart): DayPart {
-  if (slots[preferred].length > 0) return preferred
-  return DAY_PARTS.find((part) => slots[part].length > 0) ?? preferred
+function pickBestDayPart(
+  grouped: Record<DayPart, TimeSlot[]>,
+  preferred: DayPart,
+): DayPart {
+  if (grouped[preferred].some((s) => !s.booked)) return preferred
+  return DAY_PART_ORDER.find((part) => grouped[part].some((s) => !s.booked)) ?? preferred
 }
 
 export function BookingPage({ service, onBack, onConfirm }: Props) {
-  const dates = useMemo(() => getBookableDates(14), [])
+  const [bookedKeys, setBookedKeys] = useState<Set<string>>(() => getBookedKeys())
+  const dates = useMemo(() => getBookableDates(14, bookedKeys), [bookedKeys])
   const [selectedDate, setSelectedDate] = useState(dates[0]?.key ?? '')
-  const [dayPart, setDayPart] = useState<DayPart>('Midday')
+  const [dayPart, setDayPart] = useState<DayPart>('Morning')
   const [selectedTime, setSelectedTime] = useState('')
-  const preferredPartRef = useRef<DayPart>('Midday')
+  const preferredPartRef = useRef<DayPart>('Morning')
   const scrollerRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => {
+    const refresh = () => setBookedKeys(getBookedKeys())
+    window.addEventListener('tarot-bookings-updated', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('tarot-bookings-updated', refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+
   const selectedMeta = dates.find((d) => d.key === selectedDate)
-  const slotsByPart = useMemo(
-    () => (selectedDate ? getSlotsForDate(selectedDate) : { Morning: [], Midday: [], Evening: [] }),
-    [selectedDate],
+  const allSlots = useMemo(
+    () => (selectedDate ? getSlotsForDate(selectedDate, bookedKeys) : []),
+    [selectedDate, bookedKeys],
   )
+  const slotsByPart = useMemo(() => groupSlotsByPart(allSlots), [allSlots])
   const visibleSlots = slotsByPart[dayPart]
 
-  // When the date changes, refresh day-part + selected time to match that day's availability
   useEffect(() => {
     if (!selectedDate) return
-    const nextSlots = getSlotsForDate(selectedDate)
-    const nextPart = pickBestDayPart(nextSlots, preferredPartRef.current)
+    const next = groupSlotsByPart(getSlotsForDate(selectedDate, bookedKeys))
+    const nextPart = pickBestDayPart(next, preferredPartRef.current)
     preferredPartRef.current = nextPart
     setDayPart(nextPart)
-    setSelectedTime(nextSlots[nextPart][0] ?? '')
-  }, [selectedDate])
+    setSelectedTime(firstOpen(next[nextPart]))
+  }, [selectedDate, bookedKeys])
 
   function selectDate(key: string) {
     setSelectedDate(key)
-    const el = scrollerRef.current?.querySelector(`[data-date="${key}"]`)
-    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    const scroller = scrollerRef.current
+    const el = scroller?.querySelector<HTMLElement>(`[data-date="${key}"]`)
+    if (!scroller || !el) return
+    const left = el.offsetLeft - (scroller.clientWidth - el.offsetWidth) / 2
+    scroller.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
   }
 
   function selectDayPart(part: DayPart) {
     preferredPartRef.current = part
     setDayPart(part)
     const next = slotsByPart[part]
-    setSelectedTime((current) => (next.includes(current) ? current : (next[0] ?? '')))
+    setSelectedTime((current) => {
+      const stillOpen = next.find((s) => s.time === current && !s.booked)
+      return stillOpen ? current : firstOpen(next)
+    })
   }
 
   function scrollDates(dir: -1 | 1) {
@@ -65,140 +91,147 @@ export function BookingPage({ service, onBack, onConfirm }: Props) {
 
   return (
     <div className="booking-page">
-      <div className="booking-top">
-        <button className="back-btn" type="button" onClick={onBack} aria-label="Back">
-          <BackIcon />
-        </button>
-        <div className="booking-brand">
-          <img src={profile.avatar} alt="" width={42} height={42} />
-          <div>
-            <strong>{profile.name}</strong>
-            <span>{profile.tagline}</span>
+      <div className="booking-frame">
+        <div className="booking-top">
+          <button className="back-btn" type="button" onClick={onBack} aria-label="Back">
+            <BackIcon />
+          </button>
+          <div className="booking-brand">
+            <img src={profile.avatar} alt="" width={42} height={42} />
+            <div>
+              <strong>{profile.name}</strong>
+              <span>{profile.tagline}</span>
+            </div>
           </div>
+          <span className="built-note">Secure booking</span>
         </div>
-        <span className="built-note">Secure booking</span>
-      </div>
 
-      <div className="booking-card">
-        <section className="service-detail">
-          <h1>{service.title}</h1>
-          <div className="meta-row">
-            <span className="meta-chip">{service.durationMins} mins</span>
-            <span className="meta-chip">{service.platform}</span>
-          </div>
-          <div className="badge-row">
-            <div className="price-badge">
-              <span className="was">{formatINR(service.originalPrice)}</span>
-              <span>{formatINR(service.price)}</span>
+        <div className="booking-card">
+          <section className="service-detail">
+            <h1>{service.title}</h1>
+            <div className="meta-row">
+              <span className="meta-chip">{service.durationMins} mins</span>
+              <span className="meta-chip">{service.platform}</span>
             </div>
-            <div className="rating-badge">
-              <StarIcon /> {service.rating}.0
+            <div className="badge-row">
+              <div className="price-badge">
+                <span className="was">{formatINR(service.originalPrice)}</span>
+                <span>{formatINR(service.price)}</span>
+              </div>
+              <div className="rating-badge">
+                <StarIcon /> {service.rating}.0
+              </div>
             </div>
-          </div>
-          <img className="detail-image" src={service.image} alt="" width={640} height={400} />
-          <p className="detail-copy">{service.description}</p>
-        </section>
+            <img className="detail-image" src={service.image} alt="" width={640} height={400} />
+            <p className="detail-copy">{service.description}</p>
+          </section>
 
-        <section className="scheduler">
-          <div className="scheduler-block">
-            <div className="scheduler-heading">
-              <h2>When should we connect?</h2>
-              <div className="date-nav">
-                <button className="nav-arrow" type="button" onClick={() => scrollDates(-1)} aria-label="Previous dates">
-                  <ChevronLeft />
-                </button>
-                <button className="nav-arrow" type="button" onClick={() => scrollDates(1)} aria-label="Next dates">
-                  <ChevronRight />
-                </button>
+          <section className="scheduler">
+            <div className="scheduler-block">
+              <div className="scheduler-heading">
+                <h2>When should we connect?</h2>
+                <div className="date-nav">
+                  <button className="nav-arrow" type="button" onClick={() => scrollDates(-1)} aria-label="Previous dates">
+                    <ChevronLeft />
+                  </button>
+                  <button className="nav-arrow" type="button" onClick={() => scrollDates(1)} aria-label="Next dates">
+                    <ChevronRight />
+                  </button>
+                </div>
+              </div>
+
+              <div className="date-scroller" ref={scrollerRef}>
+                {dates.map((d) => (
+                  <button
+                    key={d.key}
+                    type="button"
+                    data-date={d.key}
+                    className={`date-card${selectedDate === d.key ? ' is-selected' : ''}`}
+                    onClick={() => selectDate(d.key)}
+                  >
+                    <span className="dow">{d.day}</span>
+                    <span className="dom">{d.dateLabel}</span>
+                    <span className="slots">{d.slots} open</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="date-scroller" ref={scrollerRef}>
-              {dates.map((d) => (
-                <button
-                  key={d.key}
-                  type="button"
-                  data-date={d.key}
-                  className={`date-card${selectedDate === d.key ? ' is-selected' : ''}`}
-                  onClick={() => selectDate(d.key)}
-                >
-                  <span className="dow">{d.day}</span>
-                  <span className="dom">{d.dateLabel}</span>
-                  <span className="slots">{d.slots} slots</span>
-                </button>
-              ))}
-            </div>
-          </div>
+            <div className="scheduler-block scheduler-slots">
+              <div className="scheduler-heading">
+                <h2>Select your preferred time slot</h2>
+                {selectedMeta && (
+                  <p className="slot-hint">
+                    10:00 AM – 10:00 PM · <strong>{selectedMeta.dateLabel}</strong>
+                  </p>
+                )}
+              </div>
 
-          <div className="scheduler-block">
-            <div className="scheduler-heading">
-              <h2>Select your preferred time slot</h2>
-              {selectedMeta && (
-                <p className="slot-hint">
-                  Showing availability for <strong>{selectedMeta.dateLabel}</strong>
-                </p>
-              )}
+              <div className="daypart-tabs" role="tablist" aria-label="Time of day">
+                {DAY_PART_ORDER.map((part) => {
+                  const openCount = slotsByPart[part].filter((s) => !s.booked).length
+                  return (
+                    <button
+                      key={part}
+                      type="button"
+                      role="tab"
+                      aria-selected={dayPart === part}
+                      className={dayPart === part ? 'is-active' : ''}
+                      disabled={openCount === 0}
+                      onClick={() => selectDayPart(part)}
+                    >
+                      <span>{part}</span>
+                      <small>{openCount} open</small>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="slot-grid" key={`${selectedDate}-${dayPart}`}>
+                {visibleSlots.map((slot) => {
+                  const isSelected = selectedTime === slot.time && !slot.booked
+                  return (
+                    <button
+                      key={slot.time}
+                      type="button"
+                      className={`slot-btn${isSelected ? ' is-selected' : ''}${slot.booked ? ' is-booked' : ''}`}
+                      disabled={slot.booked}
+                      aria-disabled={slot.booked}
+                      title={slot.booked ? 'Already booked' : slot.time}
+                      onClick={() => {
+                        if (!slot.booked) setSelectedTime(slot.time)
+                      }}
+                    >
+                      <span className="slot-time">{slot.time}</span>
+                      {slot.booked && <span className="slot-status">Booked</span>}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            <div className="daypart-tabs" role="tablist" aria-label="Time of day">
-              {DAY_PARTS.map((part) => {
-                const count = slotsByPart[part].length
-                return (
-                  <button
-                    key={part}
-                    type="button"
-                    role="tab"
-                    aria-selected={dayPart === part}
-                    className={dayPart === part ? 'is-active' : ''}
-                    disabled={count === 0}
-                    onClick={() => selectDayPart(part)}
-                  >
-                    <span>{part}</span>
-                    <small>{count}</small>
-                  </button>
-                )
-              })}
+            <div className="scheduler-foot">
+              <div className="timezone">
+                <GlobeIcon />
+                Asia/Calcutta (GMT+5:30)
+              </div>
+              <button
+                className="confirm-btn"
+                type="button"
+                disabled={!selectedDate || !selectedTime}
+                onClick={() =>
+                  onConfirm({
+                    dateKey: selectedDate,
+                    dateLabel: selectedMeta?.dateLabel ?? selectedDate,
+                    time: selectedTime,
+                  })
+                }
+              >
+                Confirm details
+              </button>
             </div>
-
-            <div className="slot-grid" key={`${selectedDate}-${dayPart}`}>
-              {visibleSlots.length === 0 ? (
-                <p className="empty-slots">No {dayPart.toLowerCase()} slots on this date. Try another time of day.</p>
-              ) : (
-                visibleSlots.map((slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    className={`slot-btn${selectedTime === slot ? ' is-selected' : ''}`}
-                    onClick={() => setSelectedTime(slot)}
-                  >
-                    {slot}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="scheduler-foot">
-            <div className="timezone">
-              <GlobeIcon />
-              Asia/Calcutta (GMT+5:30)
-            </div>
-            <button
-              className="confirm-btn"
-              type="button"
-              disabled={!selectedDate || !selectedTime}
-              onClick={() =>
-                onConfirm({
-                  dateKey: selectedDate,
-                  dateLabel: selectedMeta?.dateLabel ?? selectedDate,
-                  time: selectedTime,
-                })
-              }
-            >
-              Confirm details
-            </button>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   )
