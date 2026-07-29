@@ -966,9 +966,20 @@ a.service-pill .service-title {
 }
 
 .checkout-price {
-  margin: 0.75rem 0 0.85rem;
+  margin: 0.75rem 0 0.35rem;
   font-size: 1.7rem;
   font-weight: 700;
+}
+
+.checkout-pay-note {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  opacity: 0.9;
+}
+
+.payment-error {
+  color: #b42318 !important;
+  font-weight: 500;
 }
 
 .discount-btn {

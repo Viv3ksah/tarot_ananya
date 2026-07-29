@@ -1,0 +1,84 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { Config, Context } from '@netlify/functions'
+
+function getEnv(name: string) {
+  try {
+    const value = Netlify.env.get(name)
+    if (value) return value
+  } catch {
+    // fall through for local tooling
+  }
+  return process.env[name] ?? ''
+}
+
+function json(data: unknown, status = 200) {
+  return Response.json(data, {
+    status,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    },
+  })
+}
+
+export default async (req: Request, _context: Context) => {
+  if (req.method === 'OPTIONS') {
+    return json({ ok: true })
+  }
+
+  if (req.method !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405)
+  }
+
+  const keySecret = getEnv('RAZORPAY_KEY_SECRET')
+  if (!keySecret) {
+    return json({ error: 'Razorpay secret is not configured' }, 500)
+  }
+
+  let body: {
+    razorpay_order_id?: string
+    razorpay_payment_id?: string
+    razorpay_signature?: string
+  }
+
+  try {
+    body = await req.json()
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400)
+  }
+
+  const orderId = body.razorpay_order_id ?? ''
+  const paymentId = body.razorpay_payment_id ?? ''
+  const signature = body.razorpay_signature ?? ''
+
+  if (!orderId || !paymentId || !signature) {
+    return json({ error: 'Missing payment verification fields' }, 400)
+  }
+
+  const expected = createHmac('sha256', keySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex')
+
+  const expectedBuf = Buffer.from(expected)
+  const signatureBuf = Buffer.from(signature)
+
+  const valid =
+    expectedBuf.length === signatureBuf.length &&
+    timingSafeEqual(expectedBuf, signatureBuf)
+
+  if (!valid) {
+    return json({ error: 'Invalid payment signature' }, 400)
+  }
+
+  return json({
+    ok: true,
+    orderId,
+    paymentId,
+  })
+}
+
+export const config: Config = {
+  path: '/api/verify-payment',
+  method: ['POST', 'OPTIONS'],
+}

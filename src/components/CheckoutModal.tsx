@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { formatINR, profile, type Service } from '../data/content'
 import { saveBooking } from '../lib/bookings'
+import {
+  createPaymentOrder,
+  loadRazorpayScript,
+  openRazorpayCheckout,
+  verifyPayment,
+} from '../lib/razorpay'
 
 type Selection = {
   dateKey: string
@@ -37,36 +43,101 @@ function prettyDate(selection: Selection) {
   return `${weekday}, ${day}${suffix} ${month}, ${selection.time}`
 }
 
+function looksLikeEmail(value: string) {
+  return value.includes('@')
+}
+
 export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
   const [contact, setContact] = useState('')
   const [status, setStatus] = useState<'idle' | 'done' | 'error'>('idle')
   const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [paymentId, setPaymentId] = useState('')
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!contact.trim()) return
+
     setSubmitting(true)
+    setErrorMessage('')
+    setStatus('idle')
+
     try {
-      await fetch('/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: encode({
-          'form-name': 'booking',
-          email: contact.trim(),
-          service: service.title,
-          date: selection.dateKey,
-          time: selection.time,
-          amount: String(service.price),
-        }),
-      })
-      saveBooking({
+      const loaded = await loadRazorpayScript()
+      if (!loaded) {
+        throw new Error('Could not load Razorpay checkout')
+      }
+
+      const order = await createPaymentOrder({
+        amount: service.price,
+        serviceId: service.id,
+        serviceTitle: service.title,
         dateKey: selection.dateKey,
         time: selection.time,
-        serviceId: service.id,
+        contact: contact.trim(),
       })
-      setStatus('done')
-    } catch {
-      setStatus('error')
+
+      await new Promise<void>((resolve, reject) => {
+        openRazorpayCheckout({
+          key: order.keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: profile.name,
+          description: `${service.title} · ${selection.dateLabel} · ${selection.time}`,
+          order_id: order.orderId,
+          prefill: looksLikeEmail(contact)
+            ? { email: contact.trim() }
+            : { contact: contact.trim() },
+          notes: {
+            serviceId: service.id,
+            dateKey: selection.dateKey,
+            time: selection.time,
+          },
+          theme: { color: '#e91e8c' },
+          handler: async (response) => {
+            try {
+              const verified = await verifyPayment(response)
+              setPaymentId(verified.paymentId ?? response.razorpay_payment_id)
+
+              await fetch('/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: encode({
+                  'form-name': 'booking',
+                  email: contact.trim(),
+                  service: service.title,
+                  date: selection.dateKey,
+                  time: selection.time,
+                  amount: String(service.price),
+                  paymentId: verified.paymentId ?? response.razorpay_payment_id,
+                }),
+              })
+
+              saveBooking({
+                dateKey: selection.dateKey,
+                time: selection.time,
+                serviceId: service.id,
+              })
+
+              setStatus('done')
+              resolve()
+            } catch (err) {
+              reject(err instanceof Error ? err : new Error('Payment verification failed'))
+            }
+          },
+          modal: {
+            ondismiss: () => reject(new Error('Payment cancelled')),
+          },
+        })
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Payment failed'
+      if (message !== 'Payment cancelled') {
+        setStatus('error')
+        setErrorMessage(message)
+      } else {
+        setErrorMessage('Payment was cancelled. You can try again.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -77,9 +148,10 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
       <div className="checkout">
         {status === 'done' ? (
           <div className="success">
-            <h2>Request received</h2>
+            <h2>Payment successful</h2>
             <p>
-              We’ll confirm your {service.title.toLowerCase()} for {prettyDate(selection)} shortly.
+              Your {service.title.toLowerCase()} is confirmed for {prettyDate(selection)}.
+              {paymentId ? ` Payment ID: ${paymentId}` : ''}
             </p>
             <button className="pay-btn" type="button" onClick={onClose}>
               Back to profile
@@ -100,9 +172,7 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
               <h2>Session with {profile.name}</h2>
               <p>{prettyDate(selection)}</p>
               <div className="checkout-price">{formatINR(service.price)}</div>
-              <button className="discount-btn" type="button">
-                Add a discount code
-              </button>
+              <p className="checkout-pay-note">Secure payment via Razorpay</p>
             </div>
 
             <form className="checkout-body" onSubmit={handleSubmit}>
@@ -117,17 +187,14 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
                 />
-                <button className="verify-btn" type="button">
-                  Verify
-                </button>
               </div>
-              <p className="helper">Details regarding this booking will be sent to this account</p>
-              <p className="terms">By purchasing, you agree to {profile.name}&apos;s terms</p>
+              <p className="helper">Booking confirmation will be sent to this contact</p>
+              <p className="terms">By paying, you agree to {profile.name}&apos;s terms</p>
               <button className="pay-btn" type="submit" disabled={submitting || !contact.trim()}>
-                {submitting ? 'Please wait…' : 'Continue to payment'}
+                {submitting ? 'Opening Razorpay…' : `Pay ${formatINR(service.price)}`}
               </button>
-              {status === 'error' && (
-                <p className="helper">Something went wrong. Please try again.</p>
+              {(status === 'error' || errorMessage) && (
+                <p className="helper payment-error">{errorMessage || 'Something went wrong. Please try again.'}</p>
               )}
             </form>
           </>
