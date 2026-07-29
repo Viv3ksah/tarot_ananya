@@ -21,7 +21,7 @@ export const profile = {
   instagram: 'https://instagram.com/tarotananya',
   whatsapp: 'https://wa.me/919999999999',
   avatar:
-    'https://images.unsplash.com/photo-1606326608606-ee76c6c0a1e8?auto=format&fit=crop&w=400&q=80',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
   cover:
     'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?auto=format&fit=crop&w=1200&q=80',
 }

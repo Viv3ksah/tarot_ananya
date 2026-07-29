@@ -1,6 +1,14 @@
-# Tarot Ananya
+# Tarot by Ananya
 
-SuperProfile-style creator storefront for Tarot Ananya — readings, digital products, coaching, and booking in one place.
+SuperProfile-style link-in-bio + booking site for Tarot by Ananya.
+
+## Features
+
+- Dark profile home with circular avatar, bio, Instagram, and CTA
+- Expandable service pills (Vashikaran, 60 / 30 / 15 min sessions)
+- WhatsApp DM link
+- Booking flow with date + time slot picker
+- Checkout details step (Netlify Forms)
 
 ## Develop
 
@@ -9,13 +17,4 @@ npm install
 npm run dev
 ```
 
-## Build
-
-```bash
-npm run build
-npm run preview
-```
-
-## Deploy (Netlify)
-
-This project uses Vite + React with `@netlify/vite-plugin` and SPA redirects in `netlify.toml`. Booking and lead-magnet forms use Netlify Forms.
+Edit profile, prices, and copy in `src/data/content.ts`.

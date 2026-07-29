@@ -47,9 +47,9 @@ export function BookingPage({ service, onBack, onConfirm }: Props) {
         <section className="service-detail">
           <h1>{service.title}</h1>
           <div className="meta-row">
-            <span>🕒 {service.durationMins} mins</span>
+            <span>{service.durationMins} mins</span>
             <span>|</span>
-            <span>📹 {service.platform}</span>
+            <span>{service.platform}</span>
           </div>
           <div className="badge-row">
             <div className="price-badge">
@@ -123,7 +123,7 @@ export function BookingPage({ service, onBack, onConfirm }: Props) {
           </div>
 
           <div className="scheduler-foot">
-            <div className="timezone">🌐 Asia/Calcutta (GMT+5:30)</div>
+            <div className="timezone">Asia/Calcutta (GMT+5:30)</div>
             <button
               className="confirm-btn"
               type="button"
