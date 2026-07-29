@@ -243,6 +243,14 @@ a {
   transition: transform 0.25s var(--ease);
 }
 
+a.service-pill {
+  text-decoration: none;
+}
+
+a.service-pill .service-title {
+  text-align: center;
+}
+
 .service-pill:hover {
   transform: translateY(-1px);
 }
@@ -340,9 +348,9 @@ a {
 }
 
 .price-off {
-  color: var(--muted);
+  color: #c62828;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .book-now {
@@ -374,60 +382,78 @@ a {
 /* ===== Booking page ===== */
 .booking-page {
   min-height: 100svh;
+  width: 100%;
+  overflow-x: hidden;
   background:
-    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.08), transparent 30%),
-    linear-gradient(160deg, var(--bg-booking), var(--bg-booking-2) 55%, #2a1018);
-  padding: 1rem;
+    radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.1), transparent 28%),
+    linear-gradient(160deg, #5a2436 0%, #3a1524 48%, #241018 100%);
+  padding: 0.85rem 0.85rem 1.5rem;
 }
 
 .booking-top {
-  max-width: 1100px;
-  margin: 0 auto 1rem;
+  width: min(100%, 1080px);
+  margin: 0 auto 0.85rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .back-btn {
   width: 2.4rem;
   height: 2.4rem;
+  flex: 0 0 auto;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
+  transition: background 0.2s var(--ease);
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .booking-brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.7rem;
   flex: 1;
+  min-width: 0;
 }
 
 .booking-brand img {
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.4);
+  flex: 0 0 auto;
 }
 
 .booking-brand strong {
   display: block;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .booking-brand span {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.75);
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .built-note {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.55);
   display: none;
+  flex: 0 0 auto;
 }
 
 @media (min-width: 700px) {
@@ -437,46 +463,66 @@ a {
 }
 
 .booking-card {
-  max-width: 1100px;
+  width: min(100%, 1080px);
   margin: 0 auto;
   background: var(--panel);
   color: var(--ink);
-  border-radius: 22px;
-  padding: 1.25rem;
+  border-radius: 20px;
+  padding: 1.1rem;
   display: grid;
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.35rem;
   box-shadow: var(--shadow);
   animation: fadeUp 0.45s var(--ease) both;
+  overflow: hidden;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 920px) {
   .booking-card {
-    grid-template-columns: 1fr 1fr;
-    padding: 1.5rem;
-    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding: 1.4rem;
+    gap: 1.75rem;
+    align-items: start;
   }
 }
 
+.service-detail,
+.scheduler {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .service-detail h1 {
-  margin: 0 0 0.5rem;
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.35rem, 2.8vw, 1.85rem);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .meta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.85rem;
-  color: var(--muted);
-  font-size: 0.9rem;
+  gap: 0.45rem;
   margin-bottom: 0.85rem;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .badge-row {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 1rem;
+  gap: 0.55rem;
+  margin-bottom: 0.95rem;
+  flex-wrap: wrap;
 }
 
 .price-badge {
@@ -484,9 +530,9 @@ a {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
-  border-radius: 0.5rem;
+  border-radius: 0.55rem;
   background: #f3f4f6;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.92rem;
 }
 
@@ -499,13 +545,13 @@ a {
 .rating-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
   padding: 0.3rem 0.65rem;
   border-radius: var(--radius-pill);
   background: var(--rating);
   color: var(--rating-text);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .detail-image {
@@ -513,26 +559,67 @@ a {
   border-radius: var(--radius-md);
   aspect-ratio: 16 / 10;
   object-fit: cover;
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
+  background: #f3f4f6;
 }
 
 .detail-copy {
   margin: 0;
   color: #4b5563;
   line-height: 1.55;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
-.scheduler h2 {
-  margin: 0 0 0.85rem;
-  font-size: 1.05rem;
+.scheduler {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  background: #fafafa;
+  border: 1px solid #eef0f3;
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+@media (min-width: 920px) {
+  .scheduler {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.scheduler-block {
+  min-width: 0;
+}
+
+.scheduler-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.scheduler-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.slot-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.slot-hint strong {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .date-nav {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
+  gap: 0.3rem;
+  flex: 0 0 auto;
 }
 
 .nav-arrow {
@@ -543,73 +630,115 @@ a {
   display: grid;
   place-items: center;
   color: var(--muted);
+  background: #fff;
+  transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.nav-arrow:hover {
+  border-color: #d1d5db;
+  color: var(--ink);
 }
 
 .date-scroller {
   display: flex;
-  gap: 0.55rem;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
-  padding-bottom: 0.35rem;
+  overflow-y: hidden;
+  padding: 0.15rem 0.1rem 0.55rem;
   scroll-snap-type: x mandatory;
-  margin-bottom: 1.25rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.date-scroller::-webkit-scrollbar {
+  height: 4px;
+}
+
+.date-scroller::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
 }
 
 .date-card {
-  flex: 0 0 auto;
-  min-width: 4.6rem;
-  padding: 0.65rem 0.5rem;
+  flex: 0 0 4.5rem;
+  width: 4.5rem;
+  padding: 0.6rem 0.35rem;
   border-radius: 0.75rem;
   border: 1.5px solid var(--line);
   background: #fff;
   text-align: center;
   scroll-snap-align: start;
-  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.date-card:hover {
+  border-color: #d1d5db;
 }
 
 .date-card.is-selected {
   border-color: var(--pink);
   background: var(--pink-soft);
+  transform: translateY(-1px);
 }
 
 .date-card .dow {
   display: block;
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--muted);
 }
 
 .date-card .dom {
   display: block;
   font-weight: 700;
-  margin: 0.15rem 0;
+  font-size: 0.92rem;
+  margin: 0.2rem 0;
 }
 
 .date-card .slots {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--muted);
 }
 
 .daypart-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.25rem;
   padding: 0.25rem;
-  background: #f3f4f6;
+  background: #eceff3;
   border-radius: var(--radius-pill);
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.85rem;
+  width: 100%;
 }
 
 .daypart-tabs button {
-  padding: 0.55rem 0.4rem;
+  min-width: 0;
+  padding: 0.55rem 0.35rem;
   border-radius: var(--radius-pill);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #6b7280;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  gap: 0.1rem;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.daypart-tabs button small {
+  font-size: 0.68rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.daypart-tabs button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .daypart-tabs button.is-active {
@@ -619,25 +748,46 @@ a {
 }
 
 .slot-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr));
   gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  min-height: 2.6rem;
+  width: 100%;
+  min-height: 3rem;
+  margin-bottom: 0.15rem;
+  animation: fadeUp 0.3s var(--ease) both;
 }
 
 .slot-btn {
-  padding: 0.55rem 0.9rem;
+  padding: 0.65rem 0.5rem;
   border-radius: 0.65rem;
   border: 1.5px solid var(--line);
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   background: #fff;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.slot-btn:hover {
+  border-color: #d1d5db;
 }
 
 .slot-btn.is-selected {
   border-color: var(--pink);
   background: var(--pink-soft);
+  color: #9d1760;
+  transform: translateY(-1px);
+}
+
+.empty-slots {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.85rem 0.75rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  border: 1px dashed #d1d5db;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
 }
 
 .scheduler-foot {
@@ -646,20 +796,26 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #eceff3;
+  margin-top: auto;
 }
 
 .timezone {
-  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
 .confirm-btn {
-  padding: 0.85rem 1.4rem;
+  padding: 0.85rem 1.25rem;
   border-radius: var(--radius-pill);
   background: var(--pink);
   color: #fff;
   font-weight: 700;
-  min-width: 10rem;
+  min-width: 9.5rem;
   transition: transform 0.25s var(--ease), filter 0.25s var(--ease);
 }
 
@@ -671,6 +827,17 @@ a {
 .confirm-btn:not(:disabled):hover {
   transform: translateY(-1px);
   filter: brightness(1.05);
+}
+
+@media (max-width: 560px) {
+  .scheduler-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .confirm-btn {
+    width: 100%;
+  }
 }
 
 /* ===== Checkout overlay ===== */

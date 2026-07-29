@@ -20,16 +20,13 @@ export const profile = {
   bio: '5+ yrs of expertise | Guided & healed 10,000+ clients | All sessions are confidential',
   instagram: 'https://instagram.com/tarotananya',
   whatsapp: 'https://wa.me/919999999999',
-  avatar:
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-  cover:
-    'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?auto=format&fit=crop&w=1200&q=80',
+  avatar: '/images/avatar.jpg',
+  cover: '/images/session.jpg',
 }
 
-const sessionImage =
-  'https://images.unsplash.com/photo-1650460078862-ba05f66a2a0b?auto=format&fit=crop&w=900&q=80'
-const ritualImage =
-  'https://images.unsplash.com/photo-1507400492013-162706c8c05e?auto=format&fit=crop&w=900&q=80'
+const sessionImage = '/images/cards.jpg'
+const ritualImage = '/images/ritual.jpg'
+const quickImage = '/images/session.jpg'
 
 export const services: Service[] = [
   {
@@ -58,8 +55,8 @@ export const services: Service[] = [
     rating: 5,
     description:
       'A deep 1:1 tarot reading for major life questions. We explore multiple areas, patterns, and practical next steps with healing suggestions.',
-    thumb: sessionImage,
-    image: sessionImage,
+    thumb: quickImage,
+    image: quickImage,
     kind: 'session',
   },
   {
@@ -88,8 +85,8 @@ export const services: Service[] = [
     rating: 5,
     description:
       'A quick clarity pull for one focused question — perfect when you need direction fast before a decision.',
-    thumb: sessionImage,
-    image: sessionImage,
+    thumb: quickImage,
+    image: quickImage,
     kind: 'session',
   },
   {
@@ -113,27 +110,70 @@ export function formatINR(amount: number) {
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
-/** Next N bookable dates starting today */
-export function getBookableDates(count = 14) {
-  const dates: { key: string; day: string; dateLabel: string; slots: number }[] = []
-  const now = new Date()
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now)
-    d.setDate(now.getDate() + i)
-    dates.push({
-      key: d.toISOString().slice(0, 10),
-      day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-      dateLabel: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-      slots: 10 + ((i * 3) % 9),
-    })
-  }
-  return dates
-}
-
-export const timeSlots = {
+export const ALL_TIME_SLOTS = {
   Morning: ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM'],
   Midday: ['12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM'],
   Evening: ['04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM'],
 } as const
 
-export type DayPart = keyof typeof timeSlots
+export type DayPart = keyof typeof ALL_TIME_SLOTS
+
+/** @deprecated use ALL_TIME_SLOTS / getSlotsForDate */
+export const timeSlots = ALL_TIME_SLOTS
+
+function hashString(input: string) {
+  let hash = 2166136261
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+/** Deterministic available slots for a given date — changes when the date changes */
+export function getSlotsForDate(dateKey: string): Record<DayPart, string[]> {
+  const seed = hashString(dateKey)
+  const parts = Object.keys(ALL_TIME_SLOTS) as DayPart[]
+  const result = {} as Record<DayPart, string[]>
+
+  parts.forEach((part, partIndex) => {
+    const pool = ALL_TIME_SLOTS[part]
+    const available = pool.filter((_, index) => {
+      const bit = (seed + partIndex * 17 + index * 13) % 5
+      // Keep ~60–80% of slots; pattern shifts by date
+      return bit !== 0 && bit !== 3
+    })
+    result[part] =
+      available.length > 0
+        ? available
+        : [pool[(seed + partIndex) % pool.length]]
+  })
+
+  return result
+}
+
+export function countSlotsForDate(dateKey: string) {
+  const slots = getSlotsForDate(dateKey)
+  return (Object.keys(slots) as DayPart[]).reduce((sum, part) => sum + slots[part].length, 0)
+}
+
+/** Next N bookable dates starting today */
+export function getBookableDates(count = 14) {
+  const dates: { key: string; day: string; dateLabel: string; slots: number }[] = []
+  const now = new Date()
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
+    const key = [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, '0'),
+      String(d.getDate()).padStart(2, '0'),
+    ].join('-')
+    dates.push({
+      key,
+      day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+      dateLabel: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      slots: countSlotsForDate(key),
+    })
+  }
+  return dates
+}
