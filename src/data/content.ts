@@ -1,106 +1,139 @@
-export const profile = {
-  name: 'Tarot Ananya',
-  tagline: 'Intuitive guidance for the questions you carry.',
-  bio: 'Clarity through cards, presence, and honest conversation.',
-  avatar:
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-  heroImage:
-    'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?auto=format&fit=crop&w=1800&q=80',
-  socials: [
-    { label: 'Instagram', href: 'https://instagram.com/', hint: '@tarotananya' },
-    { label: 'WhatsApp', href: 'https://wa.me/', hint: 'Message me' },
-    { label: 'YouTube', href: 'https://youtube.com/', hint: 'Free readings' },
-    { label: 'Email', href: 'mailto:hello@tarotananya.com', hint: 'hello@tarotananya.com' },
-  ],
+export type Service = {
+  id: string
+  title: string
+  durationMins: number
+  price: number
+  originalPrice: number
+  discountLabel: string
+  platform: string
+  rating: number
+  description: string
+  thumb: string
+  image: string
+  kind: 'session' | 'link'
+  href?: string
 }
 
-export const offerings = [
+export const profile = {
+  name: 'Tarot by Ananya',
+  tagline: 'Your guide towards healing',
+  bio: '5+ yrs of expertise | Guided & healed 10,000+ clients | All sessions are confidential',
+  instagram: 'https://instagram.com/tarotananya',
+  whatsapp: 'https://wa.me/919999999999',
+  avatar:
+    'https://images.unsplash.com/photo-1606326608606-ee76c6c0a1e8?auto=format&fit=crop&w=400&q=80',
+  cover:
+    'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?auto=format&fit=crop&w=1200&q=80',
+}
+
+const sessionImage =
+  'https://images.unsplash.com/photo-1650460078862-ba05f66a2a0b?auto=format&fit=crop&w=900&q=80'
+const ritualImage =
+  'https://images.unsplash.com/photo-1507400492013-162706c8c05e?auto=format&fit=crop&w=900&q=80'
+
+export const services: Service[] = [
   {
-    id: 'clarity',
-    title: 'Clarity Spread',
-    duration: '30 min',
-    price: '₹999',
-    description: 'A focused three-card reading for one clear question — love, work, or a crossroads.',
+    id: 'vashikaran',
+    title: 'Vashikaran ritual',
+    durationMins: 45,
+    price: 2499,
+    originalPrice: 2999,
+    discountLabel: '17% off',
+    platform: 'Google Meet',
+    rating: 5,
+    description:
+      'A focused ritual session for attraction, reconciliation, and energetic alignment. Includes guidance, mantras, and aftercare notes tailored to your intention.',
+    thumb: ritualImage,
+    image: ritualImage,
+    kind: 'session',
   },
   {
-    id: 'deep',
-    title: 'Deep Dive Session',
-    duration: '60 min',
-    price: '₹2,499',
-    description: 'A full Celtic Cross reading with voice notes, journaling prompts, and next steps.',
+    id: '60min',
+    title: '60 mins Session',
+    durationMins: 60,
+    price: 999,
+    originalPrice: 1299,
+    discountLabel: '23% off',
+    platform: 'Google Meet',
+    rating: 5,
+    description:
+      'A deep 1:1 tarot reading for major life questions. We explore multiple areas, patterns, and practical next steps with healing suggestions.',
+    thumb: sessionImage,
+    image: sessionImage,
+    kind: 'session',
   },
   {
-    id: 'month',
-    title: 'Month Ahead Map',
-    duration: 'Written',
-    price: '₹1,499',
-    description: 'A personalized monthly forecast delivered as a beautiful PDF within 48 hours.',
+    id: '30min',
+    title: '30mins Session',
+    durationMins: 30,
+    price: 599,
+    originalPrice: 699,
+    discountLabel: '14% off',
+    platform: 'Google Meet',
+    rating: 5,
+    description:
+      'This 30-minute 1:1 tarot session is ideal if you’re seeking deeper clarity and a detailed reading. With extra time, we can explore multiple areas of your life, uncover underlying energies, and answer follow-up questions and guidance with spell/healing suggestions',
+    thumb: sessionImage,
+    image: sessionImage,
+    kind: 'session',
+  },
+  {
+    id: '15min',
+    title: '15 mins session',
+    durationMins: 15,
+    price: 299,
+    originalPrice: 399,
+    discountLabel: '25% off',
+    platform: 'Google Meet',
+    rating: 5,
+    description:
+      'A quick clarity pull for one focused question — perfect when you need direction fast before a decision.',
+    thumb: sessionImage,
+    image: sessionImage,
+    kind: 'session',
+  },
+  {
+    id: 'whatsapp',
+    title: 'DM me on WhatsApp',
+    durationMins: 0,
+    price: 0,
+    originalPrice: 0,
+    discountLabel: '',
+    platform: 'WhatsApp',
+    rating: 5,
+    description: '',
+    thumb: '',
+    image: '',
+    kind: 'link',
+    href: 'https://wa.me/919999999999',
   },
 ]
 
-export const products = [
-  {
-    id: 'shadow',
-    title: 'Shadow Work Journal',
-    price: '₹499',
-    type: 'PDF Guide',
-    description: '30 days of prompts to meet the parts of you that hide in plain sight.',
-    image:
-      'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'moon',
-    title: 'Moon Ritual Deck Notes',
-    price: '₹349',
-    type: 'Digital Pack',
-    description: 'New & full moon rituals paired with card pulls you can reuse every cycle.',
-    image:
-      'https://images.unsplash.com/photo-1507400492013-162706c8c05e?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'course',
-    title: 'Read Your Own Cards',
-    price: '₹2,999',
-    type: 'Mini Course',
-    description: 'A self-paced course to build trust in your intuition — no memorization required.',
-    image:
-      'https://images.unsplash.com/photo-1519682337058-a94d519337bc?auto=format&fit=crop&w=800&q=80',
-  },
-]
+export function formatINR(amount: number) {
+  return `₹${amount.toLocaleString('en-IN')}`
+}
 
-export const testimonials = [
-  {
-    quote:
-      'Ananya’s reading felt like someone naming the quiet thing I already knew. Soft, precise, and grounding.',
-    name: 'Meera K.',
-  },
-  {
-    quote:
-      'I booked a clarity spread before a job switch. The guidance was practical — not vague mysticism.',
-    name: 'Rohit S.',
-  },
-  {
-    quote:
-      'The month-ahead map has become my Sunday ritual. Beautifully written and surprisingly accurate.',
-    name: 'Priya N.',
-  },
-]
+/** Next N bookable dates starting today */
+export function getBookableDates(count = 14) {
+  const dates: { key: string; day: string; dateLabel: string; slots: number }[] = []
+  const now = new Date()
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now)
+    d.setDate(now.getDate() + i)
+    dates.push({
+      key: d.toISOString().slice(0, 10),
+      day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+      dateLabel: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      slots: 10 + ((i * 3) % 9),
+    })
+  }
+  return dates
+}
 
-export const faqs = [
-  {
-    q: 'How do sessions work?',
-    a: 'Book a reading below, share your question, and I’ll confirm a slot on Zoom or WhatsApp voice. Written readings arrive as a PDF.',
-  },
-  {
-    q: 'Do I need to prepare anything?',
-    a: 'Just one honest question. You don’t need prior knowledge of tarot — I’ll walk you through everything.',
-  },
-  {
-    q: 'Are readings recorded?',
-    a: 'Live sessions can be recorded on request. Written readings and digital products are yours to keep forever.',
-  },
-  {
-    q: 'What if I need to reschedule?',
-    a: 'Message me at least 12 hours ahead and we’ll find another time that works for both of us.',
-  },
-]
+export const timeSlots = {
+  Morning: ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM'],
+  Midday: ['12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM'],
+  Evening: ['04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM'],
+} as const
+
+export type DayPart = keyof typeof timeSlots
