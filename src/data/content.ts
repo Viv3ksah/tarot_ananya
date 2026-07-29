@@ -19,7 +19,8 @@ export const profile = {
   tagline: 'Your guide towards healing',
   bio: '5+ yrs of expertise | Guided & healed 10,000+ clients | All sessions are confidential',
   instagram: 'https://instagram.com/tarotananya',
-  whatsapp: 'https://wa.me/919999999999',
+  // Use country code + number, digits only (example: India 91 + 9876543210)
+  whatsapp: 'https://wa.me/919876543210?text=Hi%20Ananya%2C%20I%27d%20like%20to%20book%20a%20session',
   avatar: '/images/avatar.jpg',
   cover: '/images/session.jpg',
 }
@@ -102,10 +103,9 @@ export const services: Service[] = [
     thumb: '',
     image: '',
     kind: 'link',
-    href: 'https://wa.me/919999999999',
+    href: undefined, // uses profile.whatsapp
   },
 ]
-
 export function formatINR(amount: number) {
   return `₹${amount.toLocaleString('en-IN')}`
 }
