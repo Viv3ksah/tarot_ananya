@@ -1,15 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { Config, Context } from '@netlify/functions'
-
-function getEnv(name: string) {
-  try {
-    const value = Netlify.env.get(name)
-    if (value) return value
-  } catch {
-    // fall through for local tooling
-  }
-  return process.env[name] ?? ''
-}
+import { getEnv } from './_shared/env'
 
 function json(data: unknown, status = 200) {
   return Response.json(data, {
@@ -33,7 +24,13 @@ export default async (req: Request, _context: Context) => {
 
   const keySecret = getEnv('RAZORPAY_KEY_SECRET')
   if (!keySecret) {
-    return json({ error: 'Razorpay secret is not configured' }, 500)
+    return json(
+      {
+        error:
+          'Razorpay secret missing. Add RAZORPAY_KEY_SECRET to .env and restart npm run dev.',
+      },
+      500,
+    )
   }
 
   let body: {

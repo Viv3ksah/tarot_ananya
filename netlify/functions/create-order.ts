@@ -1,14 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-
-function getEnv(name: string) {
-  try {
-    const value = Netlify.env.get(name)
-    if (value) return value
-  } catch {
-    // fall through for local tooling
-  }
-  return process.env[name] ?? ''
-}
+import { getEnv } from './_shared/env'
 
 function json(data: unknown, status = 200) {
   return Response.json(data, {
@@ -37,7 +28,7 @@ export default async (req: Request, _context: Context) => {
     return json(
       {
         error:
-          'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Netlify env vars.',
+          'Razorpay keys missing. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to a .env file in the project root, then restart npm run dev. For Netlify, set the same variables in Site settings.',
       },
       500,
     )
