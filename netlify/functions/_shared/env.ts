@@ -30,45 +30,46 @@ function parseEnvFile(content: string): Record<string, string> {
   return out
 }
 
-function candidateDirs(): string[] {
-  const dirs = new Set<string>()
-  dirs.add(process.cwd())
-
-  try {
-    let dir = dirname(fileURLToPath(import.meta.url))
-    for (let i = 0; i < 8; i++) {
-      dirs.add(dir)
-      const parent = dirname(dir)
-      if (parent === dir) break
-      dir = parent
-    }
-  } catch {
-    // ignore
+function applyEnv(envPath: string) {
+  const parsed = parseEnvFile(readFileSync(envPath, 'utf8'))
+  for (const [key, value] of Object.entries(parsed)) {
+    cache.set(key, value)
+    process.env[key] = value
   }
-
-  return [...dirs]
+  loadedFrom = envPath
 }
 
 function loadLocalEnv() {
   if (searched) return
   searched = true
 
-  for (const dir of candidateDirs()) {
-    const envPath = join(dir, '.env')
-    const pkgPath = join(dir, 'package.json')
-    if (!existsSync(envPath)) continue
-    // Prefer project root (.env next to package.json), but accept any found .env
+  // 1) Prefer .env in the current working directory (project root when using npm run dev)
+  const cwdEnv = join(process.cwd(), '.env')
+  if (existsSync(cwdEnv)) {
     try {
-      const parsed = parseEnvFile(readFileSync(envPath, 'utf8'))
-      for (const [key, value] of Object.entries(parsed)) {
-        cache.set(key, value)
-        process.env[key] = value
-      }
-      loadedFrom = envPath
-      if (existsSync(pkgPath)) break
+      applyEnv(cwdEnv)
+      return
     } catch {
-      // try next candidate
+      // fall through
     }
+  }
+
+  // 2) Walk up from this file, but only accept folders that also have package.json
+  try {
+    let dir = dirname(fileURLToPath(import.meta.url))
+    for (let i = 0; i < 8; i++) {
+      const envPath = join(dir, '.env')
+      const pkgPath = join(dir, 'package.json')
+      if (existsSync(envPath) && existsSync(pkgPath)) {
+        applyEnv(envPath)
+        return
+      }
+      const parent = dirname(dir)
+      if (parent === dir) break
+      dir = parent
+    }
+  } catch {
+    // ignore
   }
 }
 
