@@ -1,31 +1,82 @@
-import { config as loadDotenv } from 'dotenv'
-import { existsSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-let loaded = false
+const cache = new Map<string, string>()
+let searched = false
+let loadedFrom: string | null = null
+
+function parseEnvFile(content: string): Record<string, string> {
+  const text = content.replace(/^\uFEFF/, '')
+  const out: Record<string, string> = {}
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    if (!line || line.startsWith('#')) continue
+    const eq = line.indexOf('=')
+    if (eq <= 0) continue
+
+    const key = line.slice(0, eq).trim()
+    let value = line.slice(eq + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    out[key] = value
+  }
+
+  return out
+}
+
+function candidateDirs(): string[] {
+  const dirs = new Set<string>()
+  dirs.add(process.cwd())
+
+  try {
+    let dir = dirname(fileURLToPath(import.meta.url))
+    for (let i = 0; i < 8; i++) {
+      dirs.add(dir)
+      const parent = dirname(dir)
+      if (parent === dir) break
+      dir = parent
+    }
+  } catch {
+    // ignore
+  }
+
+  return [...dirs]
+}
 
 function loadLocalEnv() {
-  if (loaded) return
-  loaded = true
+  if (searched) return
+  searched = true
 
-  const here = dirname(fileURLToPath(import.meta.url))
-  const candidates = [
-    resolve(process.cwd(), '.env'),
-    resolve(here, '../../../.env'),
-    resolve(here, '../../.env'),
-  ]
-
-  for (const path of candidates) {
-    if (existsSync(path)) {
-      loadDotenv({ path, override: false })
-      break
+  for (const dir of candidateDirs()) {
+    const envPath = join(dir, '.env')
+    const pkgPath = join(dir, 'package.json')
+    if (!existsSync(envPath)) continue
+    // Prefer project root (.env next to package.json), but accept any found .env
+    try {
+      const parsed = parseEnvFile(readFileSync(envPath, 'utf8'))
+      for (const [key, value] of Object.entries(parsed)) {
+        cache.set(key, value)
+        process.env[key] = value
+      }
+      loadedFrom = envPath
+      if (existsSync(pkgPath)) break
+    } catch {
+      // try next candidate
     }
   }
 }
 
 export function getEnv(name: string): string {
   loadLocalEnv()
+
+  const cached = cache.get(name)
+  if (cached) return cached
 
   try {
     const value = Netlify.env.get(name)
@@ -35,4 +86,14 @@ export function getEnv(name: string): string {
   }
 
   return process.env[name] ?? ''
+}
+
+export function getEnvDebug() {
+  loadLocalEnv()
+  return {
+    cwd: process.cwd(),
+    loadedFrom,
+    hasKeyId: Boolean(getEnv('RAZORPAY_KEY_ID')),
+    hasKeySecret: Boolean(getEnv('RAZORPAY_KEY_SECRET')),
+  }
 }
