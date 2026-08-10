@@ -1,31 +1,28 @@
-import type { Config, Context } from '@netlify/functions'
+import type { Handler, HandlerEvent } from '@netlify/functions'
 import { getBookedSlotKeys } from './_shared/bookings'
 
 function json(data: unknown, status = 200) {
-  return Response.json(data, {
-    status,
+  return {
+    statusCode: status,
     headers: {
+      'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
     },
-  })
+    body: JSON.stringify(data),
+  }
 }
 
-export default async (req: Request, _context: Context) => {
-  if (req.method === 'OPTIONS') return json({ ok: true })
-  if (req.method !== 'GET') return json({ error: 'Method not allowed' }, 405)
+export const handler: Handler = async (event: HandlerEvent) => {
+  if (event.httpMethod === 'OPTIONS') return json({ ok: true })
+  if (event.httpMethod !== 'GET') return json({ error: 'Method not allowed' }, 405)
 
   try {
-    const keys = await getBookedSlotKeys()
+    const keys = await getBookedSlotKeys(event)
     return json({ keys })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Could not load booked slots'
     return json({ error: message, keys: [] }, 500)
   }
-}
-
-export const config: Config = {
-  path: '/api/booked-slots',
-  method: ['GET', 'OPTIONS'],
 }

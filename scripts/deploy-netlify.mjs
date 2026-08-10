@@ -6,6 +6,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, relative } from 'node:path'
@@ -40,6 +41,10 @@ function sha1File(filePath) {
   return createHash('sha1').update(readFileSync(filePath)).digest('hex')
 }
 
+function sha256File(filePath) {
+  return createHash('sha256').update(readFileSync(filePath)).digest('hex')
+}
+
 function listFiles(dir) {
   const out = []
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -72,7 +77,7 @@ function apiJson(method, path, token, body) {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(data ? JSON.parse(data) : {})
           } else {
-            reject(new Error(`${method} ${path} -> ${res.statusCode}: ${data.slice(0, 500)}`))
+            reject(new Error(`${method} ${path} -> ${res.statusCode}: ${data.slice(0, 600)}`))
           }
         })
       },
@@ -83,7 +88,7 @@ function apiJson(method, path, token, body) {
   })
 }
 
-function putBinary(url, token, buffer, contentType) {
+function putBinary(url, token, buffer, contentType, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const target = new URL(url)
     const req = request(
@@ -95,6 +100,7 @@ function putBinary(url, token, buffer, contentType) {
           Authorization: `Bearer ${token}`,
           'Content-Type': contentType,
           'Content-Length': buffer.length,
+          ...extraHeaders,
         },
       },
       (res) => {
@@ -102,7 +108,7 @@ function putBinary(url, token, buffer, contentType) {
         res.on('data', (c) => (data += c))
         res.on('end', () => {
           if (res.statusCode >= 200 && res.statusCode < 300) resolve(data)
-          else reject(new Error(`PUT ${target.pathname} -> ${res.statusCode}: ${data.slice(0, 400)}`))
+          else reject(new Error(`PUT ${target.pathname}${target.search} -> ${res.statusCode}: ${data.slice(0, 400)}`))
         })
       },
     )
@@ -112,11 +118,16 @@ function putBinary(url, token, buffer, contentType) {
   })
 }
 
+writeFileSync(
+  join(distDir, '_redirects'),
+  ['/api/*  /.netlify/functions/:splat  200', '/*    /index.html   200', ''].join('\n'),
+)
+
 console.log('Bundling functions...')
 if (existsSync(functionsOut)) rmSync(functionsOut, { recursive: true, force: true })
 mkdirSync(functionsOut, { recursive: true })
 execSync(`npx --yes @netlify/zip-it-and-ship-it "${functionsSrc}" "${functionsOut}"`, {
-  stdio: 'inherit',
+  stdio: 'pipe',
   shell: true,
 })
 
@@ -130,32 +141,69 @@ for (const filePath of listFiles(distDir)) {
   fileBuffers[digest] = { path: webPath, buffer: readFileSync(filePath) }
 }
 
-const functions = {}
-const functionBuffers = {}
-const functionRuntime = {}
-for (const filePath of listFiles(functionsOut).filter((f) => f.endsWith('.zip'))) {
-  const name = relative(functionsOut, filePath).replace(/\.zip$/i, '').split('\\').join('/')
-  const digest = sha1File(filePath)
-  functions[name] = digest
-  functionRuntime[name] = 'js'
-  functionBuffers[digest] = { name, buffer: readFileSync(filePath) }
+const functionRoutes = {
+  'admin-bookings': {
+    path: '/api/admin/bookings',
+    methods: ['GET', 'OPTIONS'],
+  },
+  'booked-slots': {
+    path: '/api/booked-slots',
+    methods: ['GET', 'OPTIONS'],
+  },
+  'create-order': {
+    path: '/api/create-order',
+    methods: ['POST', 'OPTIONS'],
+  },
+  'payment-status': {
+    path: '/api/payment-status',
+    methods: ['GET', 'OPTIONS'],
+  },
+  'verify-payment': {
+    path: '/api/verify-payment',
+    methods: ['POST', 'OPTIONS'],
+  },
 }
 
+const functions = {}
+const functionBuffers = {}
+for (const filePath of listFiles(functionsOut).filter((f) => f.endsWith('.zip'))) {
+  const name = relative(functionsOut, filePath).replace(/\.zip$/i, '').split('\\').join('/')
+  const digest = sha256File(filePath)
+  const buffer = readFileSync(filePath)
+  functions[name] = digest
+  functionBuffers[digest] = { name, buffer, size: buffer.length }
+}
+
+const routes = Object.entries(functionRoutes).map(([name, route]) => ({
+  expression: route.path,
+  literal: route.path,
+  methods: route.methods,
+  prefer_static: false,
+  function: name,
+}))
+
 console.log(
-  `Creating deploy with ${Object.keys(files).length} files and ${Object.keys(functions).length} functions...`,
+  `Creating deploy with ${Object.keys(files).length} files, ${Object.keys(functions).length} functions, ${routes.length} routes...`,
 )
+
 const deploy = await apiJson('POST', `/api/v1/sites/${siteId}/deploys`, token, {
   files,
   functions,
-  functions_config: Object.fromEntries(
-    Object.keys(functions).map((name) => [name, { runtime: 'js' }]),
-  ),
-  redirects: [{ from: '/*', to: '/index.html', status: 200 }],
+  routes,
+  redirects: [
+    { from: '/api/booked-slots', to: '/.netlify/functions/booked-slots', status: 200, force: true },
+    { from: '/api/admin/bookings', to: '/.netlify/functions/admin-bookings', status: 200, force: true },
+    { from: '/api/create-order', to: '/.netlify/functions/create-order', status: 200, force: true },
+    { from: '/api/payment-status', to: '/.netlify/functions/payment-status', status: 200, force: true },
+    { from: '/api/verify-payment', to: '/.netlify/functions/verify-payment', status: 200, force: true },
+    { from: '/*', to: '/index.html', status: 200 },
+  ],
 })
 
 const required = deploy.required || []
 const requiredFunctions = deploy.required_functions || []
-console.log(`Uploading ${required.length} files and ${requiredFunctions.length} functions...`)
+console.log(`required files=${required.length}`)
+console.log(`required functions=${requiredFunctions.length}`)
 
 for (const digest of required) {
   const item = fileBuffers[digest]
@@ -170,34 +218,24 @@ for (const digest of required) {
 }
 
 for (const digest of requiredFunctions) {
-  const item = functionBuffers[digest]
+  const item =
+    functionBuffers[digest] ||
+    Object.values(functionBuffers).find((f) => f.name === digest)
   if (!item) throw new Error(`Missing function buffer for ${digest}`)
-  // Try both common upload shapes used by Netlify CLI
-  const urls = [
-    `https://api.netlify.com/api/v1/deploys/${deploy.id}/functions/${encodeURIComponent(item.name)}?runtime=js`,
-    `https://api.netlify.com/api/v1/deploys/${deploy.id}/functions/${encodeURIComponent(item.name)}`,
-  ]
-  let uploaded = false
-  let lastError = null
-  for (const url of urls) {
-    try {
-      await putBinary(url, token, item.buffer, 'application/zip')
-      uploaded = true
-      console.log(`uploaded function ${item.name}`)
-      break
-    } catch (err) {
-      lastError = err
-    }
-  }
-  if (!uploaded) throw lastError
+  const url =
+    `https://api.netlify.com/api/v1/deploys/${deploy.id}/functions/${encodeURIComponent(item.name)}` +
+    `?runtime=js&size=${item.size}`
+  await putBinary(url, token, item.buffer, 'application/octet-stream', {
+    Language: 'js',
+  })
+  console.log(`uploaded function ${item.name}`)
 }
 
-await new Promise((r) => setTimeout(r, 3500))
+await new Promise((r) => setTimeout(r, 5000))
 const ready = await apiJson('GET', `/api/v1/deploys/${deploy.id}`, token)
 console.log(`deploy_id=${ready.id}`)
 console.log(`state=${ready.state}`)
 console.log(`url=${ready.ssl_url || ready.url}`)
-console.log(`permalink=${ready.deploy_ssl_url || ready.deploy_url}`)
 console.log(
   `functions=${(ready.available_functions || []).map((f) => f.n).join(',') || 'none'}`,
 )

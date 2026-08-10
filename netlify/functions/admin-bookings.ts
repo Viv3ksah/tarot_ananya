@@ -1,30 +1,31 @@
-import type { Config, Context } from '@netlify/functions'
+import type { Handler, HandlerEvent } from '@netlify/functions'
 import { listBookings } from './_shared/bookings'
 import { getEnv } from './_shared/env'
 
 function json(data: unknown, status = 200) {
-  return Response.json(data, {
-    status,
+  return {
+    statusCode: status,
     headers: {
+      'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Password',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
     },
-  })
+    body: JSON.stringify(data),
+  }
 }
 
-function readPassword(req: Request) {
-  const header = req.headers.get('x-admin-password')
+function readPassword(event: HandlerEvent) {
+  const header = event.headers['x-admin-password'] || event.headers['X-Admin-Password']
   if (header) return header
-  const auth = req.headers.get('authorization')
+  const auth = event.headers.authorization || event.headers.Authorization
   if (auth?.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim()
-  const url = new URL(req.url)
-  return url.searchParams.get('password') ?? ''
+  return event.queryStringParameters?.password ?? ''
 }
 
-export default async (req: Request, _context: Context) => {
-  if (req.method === 'OPTIONS') return json({ ok: true })
-  if (req.method !== 'GET') return json({ error: 'Method not allowed' }, 405)
+export const handler: Handler = async (event: HandlerEvent) => {
+  if (event.httpMethod === 'OPTIONS') return json({ ok: true })
+  if (event.httpMethod !== 'GET') return json({ error: 'Method not allowed' }, 405)
 
   const expected = getEnv('ADMIN_DASHBOARD_PASSWORD')
   if (!expected) {
@@ -34,25 +35,16 @@ export default async (req: Request, _context: Context) => {
     )
   }
 
-  if (readPassword(req) !== expected) {
+  if (readPassword(event) !== expected) {
     return json({ error: 'Unauthorized' }, 401)
   }
 
   try {
-    const bookings = await listBookings()
-    bookings.sort((a, b) => {
-      const aKey = `${a.dateKey} ${a.time}`
-      const bKey = `${b.dateKey} ${b.time}`
-      return aKey.localeCompare(bKey)
-    })
+    const bookings = await listBookings(event)
+    bookings.sort((a, b) => `${a.dateKey} ${a.time}`.localeCompare(`${b.dateKey} ${b.time}`))
     return json({ bookings })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Could not load bookings'
     return json({ error: message }, 500)
   }
-}
-
-export const config: Config = {
-  path: '/api/admin/bookings',
-  method: ['GET', 'OPTIONS'],
 }

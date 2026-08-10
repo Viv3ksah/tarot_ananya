@@ -1,27 +1,24 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import type { Config, Context } from '@netlify/functions'
+import type { Handler, HandlerEvent } from '@netlify/functions'
 import { saveConfirmedBooking } from './_shared/bookings'
 import { getEnv } from './_shared/env'
 
 function json(data: unknown, status = 200) {
-  return Response.json(data, {
-    status,
+  return {
+    statusCode: status,
     headers: {
+      'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
     },
-  })
+    body: JSON.stringify(data),
+  }
 }
 
-export default async (req: Request, _context: Context) => {
-  if (req.method === 'OPTIONS') {
-    return json({ ok: true })
-  }
-
-  if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405)
-  }
+export const handler: Handler = async (event: HandlerEvent) => {
+  if (event.httpMethod === 'OPTIONS') return json({ ok: true })
+  if (event.httpMethod !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   const keySecret = getEnv('RAZORPAY_KEY_SECRET')
   if (!keySecret) {
@@ -47,7 +44,7 @@ export default async (req: Request, _context: Context) => {
   }
 
   try {
-    body = await req.json()
+    body = JSON.parse(event.body || '{}')
   } catch {
     return json({ error: 'Invalid JSON body' }, 400)
   }
@@ -85,16 +82,19 @@ export default async (req: Request, _context: Context) => {
   let bookingId: string | undefined
 
   if (dateKey && time && contact && serviceId) {
-    const booking = await saveConfirmedBooking({
-      dateKey,
-      time,
-      serviceId,
-      serviceTitle: serviceTitle || serviceId,
-      contact,
-      paymentId,
-      orderId,
-      amount: Number.isFinite(amount) ? amount : 0,
-    })
+    const booking = await saveConfirmedBooking(
+      {
+        dateKey,
+        time,
+        serviceId,
+        serviceTitle: serviceTitle || serviceId,
+        contact,
+        paymentId,
+        orderId,
+        amount: Number.isFinite(amount) ? amount : 0,
+      },
+      event,
+    )
     bookingId = booking.id
   }
 
@@ -104,9 +104,4 @@ export default async (req: Request, _context: Context) => {
     paymentId,
     bookingId,
   })
-}
-
-export const config: Config = {
-  path: '/api/verify-payment',
-  method: ['POST', 'OPTIONS'],
 }

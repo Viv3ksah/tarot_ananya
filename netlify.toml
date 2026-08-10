@@ -1,6 +1,37 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/booked-slots"
+  to = "/.netlify/functions/booked-slots"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/admin/bookings"
+  to = "/.netlify/functions/admin-bookings"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/create-order"
+  to = "/.netlify/functions/create-order"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/payment-status"
+  to = "/.netlify/functions/payment-status"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/verify-payment"
+  to = "/.netlify/functions/verify-payment"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"

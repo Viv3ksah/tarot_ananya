@@ -1,18 +1,23 @@
-import type { Config, Context } from '@netlify/functions'
+import type { Handler, HandlerEvent } from '@netlify/functions'
 import { getEnvDebug } from './_shared/env'
 
-export default async (req: Request, _context: Context) => {
-  if (req.method === 'OPTIONS') {
-    return Response.json({ ok: true })
+function json(data: unknown, status = 200) {
+  return {
+    statusCode: status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    },
+    body: JSON.stringify(data),
   }
+}
 
-  return Response.json({
+export const handler: Handler = async (event: HandlerEvent) => {
+  if (event.httpMethod === 'OPTIONS') return json({ ok: true })
+  return json({
     ok: true,
     razorpay: getEnvDebug(),
   })
-}
-
-export const config: Config = {
-  path: '/api/payment-status',
-  method: ['GET', 'OPTIONS'],
 }

@@ -1,27 +1,24 @@
 import Razorpay from 'razorpay'
-import type { Config, Context } from '@netlify/functions'
+import type { Handler, HandlerEvent } from '@netlify/functions'
 import { isSlotTaken } from './_shared/bookings'
 import { getEnv } from './_shared/env'
 
 function json(data: unknown, status = 200) {
-  return Response.json(data, {
-    status,
+  return {
+    statusCode: status,
     headers: {
+      'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
     },
-  })
+    body: JSON.stringify(data),
+  }
 }
 
-export default async (req: Request, _context: Context) => {
-  if (req.method === 'OPTIONS') {
-    return json({ ok: true })
-  }
-
-  if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405)
-  }
+export const handler: Handler = async (event: HandlerEvent) => {
+  if (event.httpMethod === 'OPTIONS') return json({ ok: true })
+  if (event.httpMethod !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   const keyId = getEnv('RAZORPAY_KEY_ID')
   const keySecret = getEnv('RAZORPAY_KEY_SECRET')
@@ -47,12 +44,11 @@ export default async (req: Request, _context: Context) => {
   }
 
   try {
-    body = await req.json()
+    body = JSON.parse(event.body || '{}')
   } catch {
     return json({ error: 'Invalid JSON body' }, 400)
   }
 
-  // Accept INR rupees (frontend) or paise directly
   const amountPaise = Number.isFinite(Number(body.amountPaise))
     ? Math.round(Number(body.amountPaise))
     : Math.round(Number(body.amount) * 100)
@@ -63,7 +59,7 @@ export default async (req: Request, _context: Context) => {
 
   const dateKey = (body.dateKey ?? '').trim()
   const time = (body.time ?? '').trim()
-  if (dateKey && time && (await isSlotTaken(dateKey, time))) {
+  if (dateKey && time && (await isSlotTaken(dateKey, time, event))) {
     return json({ error: 'That time slot was just booked. Please choose another.' }, 409)
   }
 
@@ -114,11 +110,6 @@ export default async (req: Request, _context: Context) => {
       return json({ error: message }, 401)
     }
 
-    return json({ error: message }, 500)
+    return json({ error: message }, statusCode >= 400 && statusCode < 600 ? statusCode : 500)
   }
-}
-
-export const config: Config = {
-  path: '/api/create-order',
-  method: ['POST', 'OPTIONS'],
 }
