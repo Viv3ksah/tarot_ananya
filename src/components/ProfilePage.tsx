@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { profile, services, type Service } from '../data/content'
 import { ServiceAccordion } from './ServiceAccordion'
+import { FollowModal } from './FollowModal'
 
 type Props = {
   onBookSession: (service: Service) => void
@@ -8,6 +9,7 @@ type Props = {
 
 export function ProfilePage({ onBookSession }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
+  const [followOpen, setFollowOpen] = useState(false)
   const sessionServices = useMemo(
     () => services.filter((s) => s.kind === 'session'),
     [],
@@ -21,7 +23,12 @@ export function ProfilePage({ onBookSession }: Props) {
   return (
     <div className="profile-page">
       <div className="profile-top">
-        <button className="chip-btn" type="button" aria-label="Follow">
+        <button
+          className="chip-btn"
+          type="button"
+          aria-label="Follow"
+          onClick={() => setFollowOpen(true)}
+        >
           <BellIcon />
           Follow
         </button>
@@ -80,6 +87,8 @@ export function ProfilePage({ onBookSession }: Props) {
       </div>
 
       <p className="made-with">Made for Tarot by Ananya</p>
+
+      <FollowModal open={followOpen} onClose={() => setFollowOpen(false)} />
     </div>
   )
 }
