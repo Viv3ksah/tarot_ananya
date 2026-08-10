@@ -65,20 +65,29 @@ export async function createPaymentOrder(input: {
     body: JSON.stringify(input),
   })
   const data = (await res.json()) as {
+    order_id?: string
     orderId?: string
     amount?: number
     currency?: string
     keyId?: string
     error?: string
   }
-  if (!res.ok || !data.orderId || !data.keyId || !data.amount) {
+
+  const orderId = data.order_id ?? data.orderId
+  const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID || data.keyId
+
+  if (!res.ok || !orderId || !data.amount) {
     throw new Error(data.error ?? 'Could not start payment')
   }
+  if (!keyId) {
+    throw new Error('Missing VITE_RAZORPAY_KEY_ID / Razorpay key id')
+  }
+
   return {
-    orderId: data.orderId,
+    orderId,
     amount: data.amount,
     currency: data.currency ?? 'INR',
-    keyId: data.keyId,
+    keyId,
   }
 }
 

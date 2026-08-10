@@ -1,3 +1,4 @@
+import Razorpay from 'razorpay'
 import type { Config, Context } from '@netlify/functions'
 import { getEnv } from './_shared/env'
 
@@ -28,7 +29,7 @@ export default async (req: Request, _context: Context) => {
     return json(
       {
         error:
-          'Razorpay keys missing. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to a .env file in the project root, then restart npm run dev. For Netlify, set the same variables in Site settings.',
+          'Razorpay keys missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env / Netlify env vars.',
       },
       500,
     )
@@ -36,6 +37,7 @@ export default async (req: Request, _context: Context) => {
 
   let body: {
     amount?: number
+    amountPaise?: number
     serviceId?: string
     serviceTitle?: string
     dateKey?: string
@@ -49,22 +51,20 @@ export default async (req: Request, _context: Context) => {
     return json({ error: 'Invalid JSON body' }, 400)
   }
 
-  const amountInr = Number(body.amount)
-  if (!Number.isFinite(amountInr) || amountInr < 1) {
-    return json({ error: 'Invalid amount' }, 400)
+  // Accept INR rupees (frontend) or paise directly
+  const amountPaise = Number.isFinite(Number(body.amountPaise))
+    ? Math.round(Number(body.amountPaise))
+    : Math.round(Number(body.amount) * 100)
+
+  if (!Number.isFinite(amountPaise) || amountPaise < 100) {
+    return json({ error: 'Amount must be at least 100 paise (₹1)' }, 400)
   }
 
-  const amountPaise = Math.round(amountInr * 100)
   const receipt = `ta_${Date.now().toString(36)}`
+  const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
 
-  const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
-  const orderRes = await fetch('https://api.razorpay.com/v1/orders', {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  try {
+    const order = await razorpay.orders.create({
       amount: amountPaise,
       currency: 'INR',
       receipt,
@@ -75,29 +75,40 @@ export default async (req: Request, _context: Context) => {
         time: body.time ?? '',
         contact: body.contact ?? '',
       },
-    }),
-  })
+    })
 
-  const orderData = (await orderRes.json()) as {
-    id?: string
-    amount?: number
-    currency?: string
-    error?: { description?: string }
+    return json({
+      order_id: order.id,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency ?? 'INR',
+      keyId,
+    })
+  } catch (err) {
+    const statusCode =
+      typeof err === 'object' &&
+      err !== null &&
+      'statusCode' in err &&
+      typeof (err as { statusCode?: unknown }).statusCode === 'number'
+        ? (err as { statusCode: number }).statusCode
+        : 500
+
+    const message =
+      typeof err === 'object' &&
+      err !== null &&
+      'error' in err &&
+      typeof (err as { error?: { description?: string } }).error?.description === 'string'
+        ? (err as { error: { description: string } }).error.description
+        : err instanceof Error
+          ? err.message
+          : 'Could not create Razorpay order'
+
+    if (statusCode === 401 || /auth|unauthorized|authentication/i.test(message)) {
+      return json({ error: message }, 401)
+    }
+
+    return json({ error: message }, 500)
   }
-
-  if (!orderRes.ok || !orderData.id) {
-    return json(
-      { error: orderData.error?.description ?? 'Could not create Razorpay order' },
-      502,
-    )
-  }
-
-  return json({
-    orderId: orderData.id,
-    amount: orderData.amount,
-    currency: orderData.currency ?? 'INR',
-    keyId,
-  })
 }
 
 export const config: Config = {

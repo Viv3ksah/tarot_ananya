@@ -78,7 +78,7 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
       })
 
       await new Promise<void>((resolve, reject) => {
-        openRazorpayCheckout({
+        const rzp = openRazorpayCheckout({
           key: order.keyId,
           amount: order.amount,
           currency: order.currency,
@@ -96,7 +96,11 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
           theme: { color: '#e91e8c' },
           handler: async (response) => {
             try {
-              const verified = await verifyPayment(response)
+              const verified = await verifyPayment({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              })
               setPaymentId(verified.paymentId ?? response.razorpay_payment_id)
 
               await fetch('/', {
@@ -128,6 +132,17 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
           modal: {
             ondismiss: () => reject(new Error('Payment cancelled')),
           },
+        })
+
+        rzp.on('payment.failed', (response) => {
+          const failed = response as { error?: { description?: string; reason?: string } }
+          reject(
+            new Error(
+              failed.error?.description ||
+                failed.error?.reason ||
+                'Payment failed. Please try again.',
+            ),
+          )
         })
       })
     } catch (err) {
