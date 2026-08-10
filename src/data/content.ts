@@ -37,7 +37,7 @@ export const services: Service[] = [
     price: 2499,
     originalPrice: 2999,
     discountLabel: '17% off',
-    platform: 'Google Meet',
+    platform: 'Website',
     rating: 5,
     description:
       'A focused ritual session for attraction, reconciliation, and energetic alignment. Includes guidance, mantras, and aftercare notes tailored to your intention.',
@@ -52,7 +52,7 @@ export const services: Service[] = [
     price: 999,
     originalPrice: 1299,
     discountLabel: '23% off',
-    platform: 'Google Meet',
+    platform: 'Website',
     rating: 5,
     description:
       'A deep 1:1 tarot reading for major life questions. We explore multiple areas, patterns, and practical next steps with healing suggestions.',
@@ -67,7 +67,7 @@ export const services: Service[] = [
     price: 599,
     originalPrice: 699,
     discountLabel: '14% off',
-    platform: 'Google Meet',
+    platform: 'Website',
     rating: 5,
     description:
       'This 30-minute 1:1 tarot session is ideal if you’re seeking deeper clarity and a detailed reading. With extra time, we can explore multiple areas of your life, uncover underlying energies, and answer follow-up questions and guidance with spell/healing suggestions',
@@ -82,7 +82,7 @@ export const services: Service[] = [
     price: 299,
     originalPrice: 399,
     discountLabel: '25% off',
-    platform: 'Google Meet',
+    platform: 'Website',
     rating: 5,
     description:
       'A quick clarity pull for one focused question — perfect when you need direction fast before a decision.',

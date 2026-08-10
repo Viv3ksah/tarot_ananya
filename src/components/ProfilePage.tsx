@@ -71,7 +71,7 @@ export function ProfilePage({ onBookSession }: Props) {
 
           {wa && (
             <a
-              className="service-pill"
+              className="service-pill service-pill-link"
               href={wa.href ?? profile.whatsapp}
               target="_blank"
               rel="noreferrer"
@@ -80,7 +80,6 @@ export function ProfilePage({ onBookSession }: Props) {
                 <WhatsAppIcon />
               </span>
               <span className="service-title">{wa.title}</span>
-              <span aria-hidden="true" style={{ width: '1.5rem' }} />
             </a>
           )}
         </section>
