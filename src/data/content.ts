@@ -18,7 +18,8 @@ export const profile = {
   name: 'Tarot by Ananya',
   tagline: 'Your guide towards healing',
   bio: '5+ yrs of expertise | Guided & healed 10,000+ clients | All sessions are confidential',
-  instagram: 'https://instagram.com/tarotananya',
+  instagram:
+    'https://www.instagram.com/tarot.ananya?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
   // Use country code + number, digits only (example: India 91 + 9876543210)
   whatsapp: 'https://wa.me/919876543210?text=Hi%20Ananya%2C%20I%27d%20like%20to%20book%20a%20session',
   avatar: '/images/avatar.jpg',
@@ -146,24 +147,37 @@ export function dayPartForTime(time: string): DayPart {
 
 export const DAY_PART_ORDER: DayPart[] = ['Morning', 'Afternoon', 'Evening']
 
-function hashString(input: string) {
-  let hash = 2166136261
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
+function parseSlotMinutes(time: string) {
+  const [clock, period] = time.split(' ')
+  const [h, m] = clock.split(':').map(Number)
+  let hour24 = h % 12
+  if (period === 'PM') hour24 += 12
+  if (period === 'AM' && h === 12) hour24 = 0
+  return hour24 * 60 + m
 }
 
-/** Every day has the full 10AM–10PM grid; some slots are marked booked */
-export function getSlotsForDate(dateKey: string, extraBooked: Set<string> = new Set()): TimeSlot[] {
-  const seed = hashString(dateKey)
-  return FULL_DAY_SLOTS.map((time, index) => {
-    const bit = (seed + index * 17) % 7
-    // ~28% pre-booked demo slots, plus any locally confirmed bookings
-    const booked = bit === 0 || bit === 4 || extraBooked.has(`${dateKey}|${time}`)
-    return { time, booked }
-  })
+function todayKey(now = new Date()) {
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function isSlotInPast(dateKey: string, time: string, now = new Date()) {
+  if (dateKey > todayKey(now)) return false
+  if (dateKey < todayKey(now)) return true
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  return parseSlotMinutes(time) <= nowMinutes
+}
+
+/** Paid bookings only — past slots are omitted, never shown as fake "booked" */
+export function getSlotsForDate(dateKey: string, paidBooked: Set<string> = new Set()): TimeSlot[] {
+  const now = new Date()
+  return FULL_DAY_SLOTS.filter((time) => !isSlotInPast(dateKey, time, now)).map((time) => ({
+    time,
+    booked: paidBooked.has(`${dateKey}|${time}`),
+  }))
 }
 
 export function groupSlotsByPart(slots: TimeSlot[]): Record<DayPart, TimeSlot[]> {
@@ -178,26 +192,28 @@ export function groupSlotsByPart(slots: TimeSlot[]): Record<DayPart, TimeSlot[]>
   return grouped
 }
 
-export function countOpenSlots(dateKey: string, extraBooked: Set<string> = new Set()) {
-  return getSlotsForDate(dateKey, extraBooked).filter((s) => !s.booked).length
+export function countOpenSlots(dateKey: string, paidBooked: Set<string> = new Set()) {
+  return getSlotsForDate(dateKey, paidBooked).filter((s) => !s.booked).length
 }
 
-/** Next N bookable dates starting today */
-export function getBookableDates(count = 14, extraBooked: Set<string> = new Set()) {
+/** Next N bookable dates starting today (skips days with no remaining future slots) */
+export function getBookableDates(count = 14, paidBooked: Set<string> = new Set()) {
   const dates: { key: string; day: string; dateLabel: string; slots: number }[] = []
   const now = new Date()
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; dates.length < count && i < count + 7; i++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
     const key = [
       d.getFullYear(),
       String(d.getMonth() + 1).padStart(2, '0'),
       String(d.getDate()).padStart(2, '0'),
     ].join('-')
+    const open = countOpenSlots(key, paidBooked)
+    if (open === 0 && i === 0) continue
     dates.push({
       key,
       day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
       dateLabel: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-      slots: countOpenSlots(key, extraBooked),
+      slots: open,
     })
   }
   return dates

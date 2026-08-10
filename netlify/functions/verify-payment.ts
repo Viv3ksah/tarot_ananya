@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { Config, Context } from '@netlify/functions'
+import { saveConfirmedBooking } from './_shared/bookings'
 import { getEnv } from './_shared/env'
 
 function json(data: unknown, status = 200) {
@@ -37,6 +38,12 @@ export default async (req: Request, _context: Context) => {
     razorpay_order_id?: string
     razorpay_payment_id?: string
     razorpay_signature?: string
+    serviceId?: string
+    serviceTitle?: string
+    dateKey?: string
+    time?: string
+    contact?: string
+    amount?: number
   }
 
   try {
@@ -68,10 +75,34 @@ export default async (req: Request, _context: Context) => {
     return json({ error: 'Invalid payment signature' }, 400)
   }
 
+  const dateKey = (body.dateKey ?? '').trim()
+  const time = (body.time ?? '').trim()
+  const contact = (body.contact ?? '').trim()
+  const serviceId = (body.serviceId ?? '').trim()
+  const serviceTitle = (body.serviceTitle ?? '').trim()
+  const amount = Number(body.amount ?? 0)
+
+  let bookingId: string | undefined
+
+  if (dateKey && time && contact && serviceId) {
+    const booking = await saveConfirmedBooking({
+      dateKey,
+      time,
+      serviceId,
+      serviceTitle: serviceTitle || serviceId,
+      contact,
+      paymentId,
+      orderId,
+      amount: Number.isFinite(amount) ? amount : 0,
+    })
+    bookingId = booking.id
+  }
+
   return json({
     ok: true,
     orderId,
     paymentId,
+    bookingId,
   })
 }
 

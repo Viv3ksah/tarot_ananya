@@ -1,5 +1,6 @@
 import Razorpay from 'razorpay'
 import type { Config, Context } from '@netlify/functions'
+import { isSlotTaken } from './_shared/bookings'
 import { getEnv } from './_shared/env'
 
 function json(data: unknown, status = 200) {
@@ -58,6 +59,12 @@ export default async (req: Request, _context: Context) => {
 
   if (!Number.isFinite(amountPaise) || amountPaise < 100) {
     return json({ error: 'Amount must be at least 100 paise (₹1)' }, 400)
+  }
+
+  const dateKey = (body.dateKey ?? '').trim()
+  const time = (body.time ?? '').trim()
+  if (dateKey && time && (await isSlotTaken(dateKey, time))) {
+    return json({ error: 'That time slot was just booked. Please choose another.' }, 409)
   }
 
   const receipt = `ta_${Date.now().toString(36)}`

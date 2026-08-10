@@ -10,7 +10,7 @@ import {
   type Service,
   type TimeSlot,
 } from '../data/content'
-import { getBookedKeys } from '../lib/bookings'
+import { getBookedKeys, fetchBookedKeys } from '../lib/bookings'
 
 type Props = {
   service: Service
@@ -40,10 +40,19 @@ export function BookingPage({ service, onBack, onConfirm }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const refresh = () => setBookedKeys(getBookedKeys())
+    let cancelled = false
+    fetchBookedKeys().then((keys) => {
+      if (!cancelled) setBookedKeys(keys)
+    })
+    const refresh = () => {
+      fetchBookedKeys().then((keys) => {
+        if (!cancelled) setBookedKeys(keys)
+      })
+    }
     window.addEventListener('tarot-bookings-updated', refresh)
     window.addEventListener('storage', refresh)
     return () => {
+      cancelled = true
       window.removeEventListener('tarot-bookings-updated', refresh)
       window.removeEventListener('storage', refresh)
     }

@@ -91,13 +91,27 @@ export async function createPaymentOrder(input: {
   }
 }
 
-export async function verifyPayment(payload: RazorpaySuccessResponse) {
+export async function verifyPayment(
+  payload: RazorpaySuccessResponse & {
+    serviceId?: string
+    serviceTitle?: string
+    dateKey?: string
+    time?: string
+    contact?: string
+    amount?: number
+  },
+) {
   const res = await fetch('/api/verify-payment', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  const data = (await res.json()) as { ok?: boolean; error?: string; paymentId?: string }
+  const data = (await res.json()) as {
+    ok?: boolean
+    error?: string
+    paymentId?: string
+    bookingId?: string
+  }
   if (!res.ok || !data.ok) {
     throw new Error(data.error ?? 'Payment verification failed')
   }

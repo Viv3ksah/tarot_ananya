@@ -100,6 +100,12 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
+                serviceId: service.id,
+                serviceTitle: service.title,
+                dateKey: selection.dateKey,
+                time: selection.time,
+                contact: contact.trim(),
+                amount: service.price,
               })
               setPaymentId(verified.paymentId ?? response.razorpay_payment_id)
 
@@ -117,10 +123,13 @@ export function CheckoutModal({ service, selection, onBack, onClose }: Props) {
                 }),
               })
 
+              // Slot is reserved only after server-side payment verification succeeds
               saveBooking({
                 dateKey: selection.dateKey,
                 time: selection.time,
                 serviceId: service.id,
+                contact: contact.trim(),
+                paymentId: verified.paymentId ?? response.razorpay_payment_id,
               })
 
               setStatus('done')

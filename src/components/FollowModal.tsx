@@ -12,6 +12,10 @@ function encode(data: Record<string, string>) {
     .join('&')
 }
 
+function openInstagram() {
+  window.open(profile.instagram, '_blank', 'noopener,noreferrer')
+}
+
 export function FollowModal({ open, onClose }: Props) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -45,6 +49,7 @@ export function FollowModal({ open, onClose }: Props) {
         }),
       })
       setDone(true)
+      openInstagram()
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -63,8 +68,11 @@ export function FollowModal({ open, onClose }: Props) {
           <div className="follow-success">
             <img className="follow-avatar" src={profile.avatar} alt="" width={72} height={72} />
             <h2>You’re following {profile.name}</h2>
-            <p>Thanks! You’ll get regular updates and important information.</p>
-            <button className="follow-submit" type="button" onClick={onClose}>
+            <p>Instagram should open next — tap Follow there to stay updated.</p>
+            <button className="follow-submit" type="button" onClick={openInstagram}>
+              Open Instagram
+            </button>
+            <button className="follow-secondary" type="button" onClick={onClose}>
               Done
             </button>
           </div>
