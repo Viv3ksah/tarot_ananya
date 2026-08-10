@@ -10,7 +10,7 @@
   force = true
 
 [[redirects]]
-  from = "/api/admin/bookings"
+  from = "/api/admin-bookings"
   to = "/.netlify/functions/admin-bookings"
   status = 200
   force = true

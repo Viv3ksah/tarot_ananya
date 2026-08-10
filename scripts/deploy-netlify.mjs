@@ -127,9 +127,17 @@ console.log('Bundling functions...')
 if (existsSync(functionsOut)) rmSync(functionsOut, { recursive: true, force: true })
 mkdirSync(functionsOut, { recursive: true })
 execSync(`npx --yes @netlify/zip-it-and-ship-it "${functionsSrc}" "${functionsOut}"`, {
-  stdio: 'pipe',
+  stdio: 'inherit',
   shell: true,
 })
+console.log('Function bundle complete')
+console.log(
+  'Bundled zips:',
+  listFiles(functionsOut)
+    .filter((f) => f.endsWith('.zip'))
+    .map((f) => relative(functionsOut, f))
+    .join(', '),
+)
 
 const token = readToken()
 const files = {}
@@ -143,7 +151,7 @@ for (const filePath of listFiles(distDir)) {
 
 const functionRoutes = {
   'admin-bookings': {
-    path: '/api/admin/bookings',
+    path: '/api/admin-bookings',
     methods: ['GET', 'OPTIONS'],
   },
   'booked-slots': {
@@ -192,7 +200,7 @@ const deploy = await apiJson('POST', `/api/v1/sites/${siteId}/deploys`, token, {
   routes,
   redirects: [
     { from: '/api/booked-slots', to: '/.netlify/functions/booked-slots', status: 200, force: true },
-    { from: '/api/admin/bookings', to: '/.netlify/functions/admin-bookings', status: 200, force: true },
+    { from: '/api/admin-bookings', to: '/.netlify/functions/admin-bookings', status: 200, force: true },
     { from: '/api/create-order', to: '/.netlify/functions/create-order', status: 200, force: true },
     { from: '/api/payment-status', to: '/.netlify/functions/payment-status', status: 200, force: true },
     { from: '/api/verify-payment', to: '/.netlify/functions/verify-payment', status: 200, force: true },

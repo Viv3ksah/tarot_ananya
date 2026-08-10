@@ -58,7 +58,7 @@ export function AdminDashboard() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/admin/bookings', {
+      const res = await fetch('/api/admin-bookings', {
         headers: { 'X-Admin-Password': pass },
       })
       const data = (await res.json()) as { bookings?: Booking[]; error?: string }
