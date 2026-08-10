@@ -7,7 +7,7 @@ type Props = {
 }
 
 export function ProfilePage({ onBookSession }: Props) {
-  const [openId, setOpenId] = useState<string | null>('30min')
+  const [openId, setOpenId] = useState<string | null>(null)
   const sessionServices = useMemo(
     () => services.filter((s) => s.kind === 'session'),
     [],
