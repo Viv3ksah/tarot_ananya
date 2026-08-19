@@ -4,21 +4,18 @@ import { ServiceAccordion } from './ServiceAccordion'
 import { FollowModal } from './FollowModal'
 
 type Props = {
+  onOpenCatalog: () => void
   onBookSession: (service: Service) => void
 }
 
-export function ProfilePage({ onBookSession }: Props) {
+export function ProfilePage({ onOpenCatalog, onBookSession }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [followOpen, setFollowOpen] = useState(false)
   const sessionServices = useMemo(
-    () => services.filter((s) => s.kind === 'session'),
+    () => services.filter((s) => s.kind === 'session' && s.featured),
     [],
   )
   const wa = services.find((s) => s.id === 'whatsapp')
-
-  function scrollToServices() {
-    document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   return (
     <div className="profile-page">
@@ -53,9 +50,17 @@ export function ProfilePage({ onBookSession }: Props) {
           >
             <InstagramIcon />
           </a>
-          <button className="book-cta" type="button" onClick={scrollToServices}>
+          <a
+            className="book-cta"
+            href="/book"
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+              e.preventDefault()
+              onOpenCatalog()
+            }}
+          >
             Book a session with me
-          </button>
+          </a>
         </section>
 
         <section className="service-list" id="services" aria-label="Services">

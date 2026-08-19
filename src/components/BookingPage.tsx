@@ -119,7 +119,11 @@ export function BookingPage({ service, onBack, onConfirm }: Props) {
           <section className="service-detail">
             <h1>{service.title}</h1>
             <div className="meta-row">
-              <span className="meta-chip">{service.durationMins} mins</span>
+              {service.format === 'bundle' ? (
+                <span className="meta-chip">{service.bundleSessions} sessions</span>
+              ) : (
+                <span className="meta-chip">{service.durationMins} mins</span>
+              )}
               <span className="meta-chip">{service.platform}</span>
             </div>
             <div className="badge-row">
