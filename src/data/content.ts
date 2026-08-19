@@ -22,7 +22,7 @@ export const profile = {
     'https://www.instagram.com/tarot.ananya?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
   // Use country code + number, digits only (example: India 91 + 9876543210)
   whatsapp: 'https://wa.me/919876543210?text=Hi%20Ananya%2C%20I%27d%20like%20to%20book%20a%20session',
-  avatar: '/images/avatar.jpg',
+  avatar: '/images/AVATAR1.png',
   cover: '/images/session.jpg',
 }
 
