@@ -17,11 +17,11 @@ export type Service = {
 export const profile = {
   name: 'Tarot by Ananya',
   tagline: 'Your guide towards healing',
-  bio: '5+ yrs of expertise | Guided & healed 10,000+ clients | All sessions are confidential',
+  bio: '5+ yrs of expertise | Guided & healed 50,000+ clients | All sessions are confidential',
   instagram:
     'https://www.instagram.com/tarot.ananya?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
   // Use country code + number, digits only (example: India 91 + 9876543210)
-  whatsapp: 'https://wa.me/919123361079?text=Hi%20Ananya%2C%20I%27d%20like%20to%20book%20a%20session',
+  whatsapp: 'https://wa.me/919163732506?text=Hi%20Ananya%2C%20I%27d%20like%20to%20book%20a%20session',
   avatar: '/images/AVATAR1.png',
   cover: '/images/session.jpg',
 }
