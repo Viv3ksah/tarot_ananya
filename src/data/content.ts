@@ -26,7 +26,7 @@ export const profile = {
   cover: '/images/session.jpg',
 }
 
-const sessionImage = '/images/CARDS3.jpg'   // 30 min
+const sessionImage = '/images/CARDS3.png'   // 30 min
 const ritualImage = '/images/CARDS1.png'  // vashikaran
 const quickImage = '/images/CARDS2.png'  // 60 min
 const quickImage1 = '/images/CARDS4.png' // 15 min
@@ -43,8 +43,8 @@ export const services: Service[] = [
     rating: 5,
     description:
       'A focused ritual session for attraction, reconciliation, and energetic alignment. Includes guidance, mantras, and aftercare notes tailored to your intention.',
-    thumb: ritualImage,
-    image: ritualImage,
+    thumb: quickImage1,
+    image: quickImage1,
     kind: 'session',
   },
   {
@@ -88,8 +88,8 @@ export const services: Service[] = [
     rating: 5,
     description:
       'A quick clarity pull for one focused question — perfect when you need direction fast before a decision.',
-    thumb: quickImage1,
-    image: quickImage1,
+    thumb: ritualImage,
+    image: ritualImage,
     kind: 'session',
   },
   {
