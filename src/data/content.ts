@@ -27,8 +27,8 @@ export const profile = {
 }
 
 const sessionImage = '/images/cards.jpg'
-const ritualImage = '/images/ritual.jpg'
-const quickImage = '/images/session.jpg'
+const ritualImage = '/images/CARDS1.png'  // vashikaran
+const quickImage = '/images/CARDS2.png'  // 60 min
 
 export const services: Service[] = [
   {
